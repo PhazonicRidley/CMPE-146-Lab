@@ -54,6 +54,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#define TLV_CHECKSUM_ADDR (void*)0x00201000
+#define TLV_ENDWORD_ADDR (void*)0x00201148
+
 //Calculates a Fletcher-32 checksum, which consists of two parts.
 //The first is a checksum of the data values. The second
 //is a checksum of the intermediate values of the first checksum.
@@ -81,12 +84,44 @@ uint32_t Calc_Fletcher32_Chksum(uint16_t *data_start, uint32_t num_data_values, 
 }
 
 
+typedef struct tlv_entry_s {
+    uint32_t tag;
+    uint32_t len;
+    uint32_t data[];
+} tlv_entry_t;
+
+
+void print_device_descriptor_table() {
+    tlv_entry_t* cur_addr = TLV_CHECKSUM_ADDR;
+    uint32_t entry_len;
+    while ((void*)cur_addr <= TLV_ENDWORD_ADDR) {
+        entry_len = cur_addr->len;
+        printf("tlv_entry_addr: %p", cur_addr);
+        printf("Tag: %u\n", cur_addr->tag);
+        printf("Length: %u\nData:", entry_len);
+
+        int i;
+        for (i = 0; i < entry_len; i++) {
+            printf("%d: %u\n", i, cur_addr->data[i]);
+        }
+
+        // TLV entry is variable length so incrementation must be done at the word level
+        uint32_t next_addr = (2 * sizeof(uint32_t)) + entry_len;
+        cur_addr = (tlv_entry_t*)((uint32_t)cur_addr + next_addr);
+
+        printf("-------------------\n");
+    }
+}
+
 int main(void)
 {
-    uint16_t *tlv_data =(uint16_t *) 0x00201004;
-    uint32_t chksumSeed = 0xDADA0000;
-    uint32_t computed_checksum = Calc_Fletcher32_Chksum(tlv_data, 2, chksumSeed);
-
-    printf("Computed Checksum: 0x%08X\n", computed_checksum);
+    print_device_descriptor_table();
+    printf("\nDone\n");
+    while(1);
+//    uint16_t *tlv_data =(uint16_t *) 0x00201004;
+//    uint32_t chksumSeed = 0xDADA0000;
+//    uint32_t computed_checksum = Calc_Fletcher32_Chksum(tlv_data, 2, chksumSeed);
+//
+//    printf("Computed Checksum: 0x%08X\n", computed_checksum);
 
 }
