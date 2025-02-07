@@ -91,26 +91,32 @@ typedef struct tlv_entry_s {
 } tlv_entry_t;
 
 
+
+
 void print_device_descriptor_table() {
-    tlv_entry_t* cur_addr = TLV_CHECKSUM_ADDR;
+    uint32_t* checksum_addr = TLV_CHECKSUM_ADDR;
+    printf("TLV Checksum: 0x%x\n", *checksum_addr);
+    printf("-------------------\n");
+    tlv_entry_t* cur_addr = (tlv_entry_t*)(checksum_addr + 1);
     uint32_t entry_len;
-    while ((void*)cur_addr <= TLV_ENDWORD_ADDR) {
+    while ((void*)cur_addr < TLV_ENDWORD_ADDR) {
         entry_len = cur_addr->len;
         printf("tlv_entry_addr: %p", cur_addr);
-        printf("Tag: %u\n", cur_addr->tag);
-        printf("Length: %u\nData:", entry_len);
+        printf("Tag: 0x%x\n", cur_addr->tag);
+        printf("Length: 0x%x\nData:", entry_len);
 
         int i;
-        for (i = 0; i < entry_len; i++) {
-            printf("%d: %u\n", i, cur_addr->data[i]);
+        for (i = 0; i < entry_len && (entry_len < 255); i++) {
+            printf("%d: 0x%x\n", i, cur_addr->data[i]);
         }
 
         // TLV entry is variable length so incrementation must be done at the word level
-        uint32_t next_addr = (2 * sizeof(uint32_t)) + entry_len;
-        cur_addr = (tlv_entry_t*)((uint32_t)cur_addr + next_addr);
+        uint32_t next_addr = 2 + entry_len;
+        cur_addr = (tlv_entry_t*)((uint32_t*)cur_addr + next_addr);
 
         printf("-------------------\n");
     }
+    printf("Endword: 0x%x\n", *(uint32_t*)cur_addr);
 }
 
 int main(void)
