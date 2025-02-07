@@ -57,32 +57,6 @@
 #define TLV_CHECKSUM_ADDR (void*)0x00201000
 #define TLV_ENDWORD_ADDR (void*)0x00201148
 
-//Calculates a Fletcher-32 checksum, which consists of two parts.
-//The first is a checksum of the data values. The second
-//is a checksum of the intermediate values of the first checksum.
-uint32_t Calc_Fletcher32_Chksum(uint16_t *data_start, uint32_t num_data_values, uint32_t seed)
-{
-    uint32_t sum1, sum2, c;
-    sum1 = seed & 0xFFFF;
-    sum2 = (seed & 0xFFFF0000) >> 16;
-    for (c = 0; c < num_data_values; c++)
-    {
-            //Add the new data value, doing an end-around carry to implement a
-            //one's complement sum. This is mostly done for better error detection
-            //since it makes an MSB flip affect more than just the MSB of the
-            //checksum. It's also endian-independent (up to a bit rotation) and
-            //provides easy match detection, although those features don't work in
-            //a Fletcher checksum. This step can be optimized for speed by
-            //accumulating carries for up to 360 sums, but since the function is
-            //only used once per run the code size is optimized instead.
-            sum1 += data_start[c];
-            sum1 = (sum1 >> 16) + (sum1 & 0xFFFF);
-            sum2 += sum1;
-            sum2 = (sum2 >> 16) + (sum2 & 0xFFFF);
-    }
-    return (sum2<<16) | sum1;
-}
-
 
 typedef struct tlv_entry_s {
     uint32_t tag;
@@ -101,7 +75,7 @@ void print_device_descriptor_table() {
     uint32_t entry_len;
     while ((void*)cur_addr < TLV_ENDWORD_ADDR) {
         entry_len = cur_addr->len;
-        printf("tlv_entry_addr: %p", cur_addr);
+        printf("tlv_entry_addr: %p\n", cur_addr);
         printf("Tag: 0x%x\n", cur_addr->tag);
         printf("Length: 0x%x\nData:", entry_len);
 
@@ -124,10 +98,5 @@ int main(void)
     print_device_descriptor_table();
     printf("\nDone\n");
     while(1);
-//    uint16_t *tlv_data =(uint16_t *) 0x00201004;
-//    uint32_t chksumSeed = 0xDADA0000;
-//    uint32_t computed_checksum = Calc_Fletcher32_Chksum(tlv_data, 2, chksumSeed);
-//
-//    printf("Computed Checksum: 0x%08X\n", computed_checksum);
 
 }
