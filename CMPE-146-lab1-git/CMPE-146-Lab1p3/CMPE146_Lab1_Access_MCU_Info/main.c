@@ -54,42 +54,52 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define TLV_CHECKSUM_ADDR (void*)0x00201000
-#define TLV_ENDWORD_ADDR (void*)0x00201148
+// Define the memory addresses defined in datasheet (table 6-86)
+#define TLV_CHECKSUM_ADDR (uint32_t*)0x00201000
+#define TLV_ENDWORD_ADDR (uint32_t*)0x00201148
 
-
+// Structure to represent a TLV entry
 typedef struct tlv_entry_s {
-    uint32_t tag;
-    uint32_t len;
-    uint32_t data[];
+    uint32_t tag; // Tag is the first 4 bytes
+    uint32_t len; // length is the next 4 bytes
+    uint32_t data[]; // Zero length array representing that there will be consecutive u32s after len
 } tlv_entry_t;
 
 
 
-
+// Print out the entire device descriptor table, categorized by entry
 void print_device_descriptor_table() {
+    // Print checksum
     uint32_t* checksum_addr = TLV_CHECKSUM_ADDR;
     printf("TLV Checksum: 0x%x\n", *checksum_addr);
     printf("-------------------\n");
-    tlv_entry_t* cur_addr = (tlv_entry_t*)(checksum_addr + 1);
+
+    // Next 4 bytes over (0x00201004) starts the first entry, cast the new pointer to consider the underlying type to be
+    // a tlv_entry_t
+    tlv_entry_t* cur_addr = (tlv_entry_t*)(checksum_addr + 1); // + 1 means "the next u32" or "the next 4 bytes to get to the next u32"
     uint32_t entry_len;
-    while ((void*)cur_addr < TLV_ENDWORD_ADDR) {
+
+    // While the current address is less than the endword address, we are still in the table
+    while ((uint32_t*)cur_addr < TLV_ENDWORD_ADDR) {
         entry_len = cur_addr->len;
-        printf("tlv_entry_addr: %p\n", cur_addr);
+        printf("tlv_entry_addr: %p", cur_addr); // print start of current entry address
         printf("Tag: 0x%x\n", cur_addr->tag);
         printf("Length: 0x%x\nData:", entry_len);
-
+        
+        // Print data associated with the current entry, we know how much data there will be from len
         int i;
         for (i = 0; i < entry_len && (entry_len < 255); i++) {
             printf("%d: 0x%x\n", i, cur_addr->data[i]);
         }
 
-        // TLV entry is variable length so incrementation must be done at the word level
-        uint32_t next_addr = 2 + entry_len;
-        cur_addr = (tlv_entry_t*)((uint32_t*)cur_addr + next_addr);
+        // TLV entry is variable length so incrementation must be done at the word level because thats a fixed size we can measure by
+        uint32_t next_entry_offset = 2 + entry_len;
+        cur_addr = (tlv_entry_t*)((uint32_t*)cur_addr + next_entry_offset);
 
         printf("-------------------\n");
     }
+
+    // Print the endword, last part of the table.
     printf("Endword: 0x%x\n", *(uint32_t*)cur_addr);
 }
 
