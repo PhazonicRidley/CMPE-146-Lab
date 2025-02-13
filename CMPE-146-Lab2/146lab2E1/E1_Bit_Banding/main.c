@@ -48,18 +48,56 @@
 *******************************************************************************/
 /* DriverLib Includes */
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
-
 /* Standard Includes */
 #include <stdint.h>
 #include <stdbool.h>
 
+//![Simple GPIO Config]
+#define RGBLED_PORT  GPIO_PORT_P2
+#define RLED_PIN  GPIO_PIN0
+#define GLED_PIN  GPIO_PIN1
+#define BLED_PIN  GPIO_PIN2
+
+#define BTN_PORT  GPIO_PORT_P1
+#define BTN_PIN1  GPIO_PIN1
+#define BTN_PIN4  GPIO_PIN4
+
+void Ex1_1_DriveLib()
+{
+    uint8_t prevLed;
+    uint8_t currLed;
+
+    currLed = MAP_GPIO_getInputPinValue(BTN_PORT, BTN_PIN1);
+    if((currLed ==  GPIO_INPUT_PIN_LOW && prevLed == GPIO_INPUT_PIN_HIGH) || (currLed ==  GPIO_INPUT_PIN_LOW && prevLed == GPIO_INPUT_PIN_LOW))
+    {
+        MAP_GPIO_setOutputHighOnPin(RGBLED_PORT, BLED_PIN);
+    }
+    else
+    {
+        MAP_GPIO_setOutputLowOnPin(RGBLED_PORT, BLED_PIN);
+    }
+    prevLed = currLed;
+}
+
 int main(void)
 {
-    /* Stop Watchdog  */
+    volatile uint32_t ii;
     MAP_WDT_A_holdTimer();
+
+    //Initialize pins and ports for leds and buttons
+    MAP_GPIO_setAsInputPinWithPullUpResistor(BTN_PORT, BTN_PIN1);
+//    MAP_GPIO_setAsInputPinWithPullUpResistor(BTN_PORT, BTN_PIN4);
+
+//    MAP_GPIO_setAsOutputPin(RGBLED_PORT, RLED_PIN);
+//    MAP_GPIO_setAsOutputPin(RGBLED_PORT, GLED_PIN);
+    MAP_GPIO_setAsOutputPin(RGBLED_PORT, BLED_PIN);
 
     while(1)
     {
-        
+        for(ii=0;ii<5000;ii++)
+        {
+        }
+
+        Ex1_1_DriveLib();
     }
 }

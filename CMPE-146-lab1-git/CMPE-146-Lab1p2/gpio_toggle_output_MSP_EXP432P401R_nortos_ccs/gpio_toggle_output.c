@@ -57,7 +57,7 @@
 //![Simple GPIO Config]
 int main(void)
 {
-    volatile uint32_t ii;
+    volatile uint32_t i;
 
     /* Halting the Watchdog */
     MAP_WDT_A_holdTimer();
@@ -74,6 +74,8 @@ int main(void)
 
         MAP_GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
     }
+
+
 }
 //![Simple GPIO Config]
 
