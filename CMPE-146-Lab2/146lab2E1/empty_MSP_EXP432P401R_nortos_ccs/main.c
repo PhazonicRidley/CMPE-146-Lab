@@ -48,49 +48,51 @@
 *******************************************************************************/
 /* DriverLib Includes */
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
-#include <ti/devices/msp432p4xx/driverlib/rom_map.h>
+
 /* Standard Includes */
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
 
 //![Simple GPIO Config]
-#define RGBLED_PORT  GPIO_PORT_P2
-#define RLED_PIN  GPIO_PIN0
-#define GLED_PIN  GPIO_PIN1
-#define BLED_PIN  GPIO_PIN2
+#define RLED_PIN (0x0001)
+#define GLED_PIN (0x0002)
+#define BLED_PIN (0x0004)
 
-#define BTN_PORT  GPIO_PORT_P1
-#define BTN_PIN1  GPIO_PIN1
-#define BTN_PIN4  GPIO_PIN4
+#define BTN_PIN1 (0x0002)
+
+#define PORT_REG(offset) ((uint8_t*)(0x40004C00 + offset))
 
 int main(void)
 {
-    volatile uint32_t ii;
-    MAP_WDT_A_holdTimer();
+    /* Stop Watchdog  */
+    printf("hello\n");
+    // Configure button
+    volatile uint8_t* btn_port_dir_reg = PORT_REG(0x4);
+    volatile uint8_t* btn_port_ren_reg = PORT_REG(0x6);
+    volatile uint8_t* btn_port_out_reg = PORT_REG(0x2);
+    volatile uint8_t* btn_port_in_reg = PORT_REG(0x0);
+    *btn_port_dir_reg &= ~(BTN_PIN1);
+    *btn_port_ren_reg |= BTN_PIN1;
+    *btn_port_out_reg |= BTN_PIN1;
 
-    //Initialize pins and ports for leds and buttons
-    MAP_GPIO_setAsInputPinWithPullUpResistor(BTN_PORT, BTN_PIN1);
+    // Configure not LED
+    volatile uint8_t* led_port_dir_reg = PORT_REG(0x5);
+    volatile uint8_t* led_port_out_reg = PORT_REG(0x3);
+    *led_port_dir_reg |= RLED_PIN | GLED_PIN | BLED_PIN;
+    *led_port_out_reg &= ~(RLED_PIN | GLED_PIN | BLED_PIN);
 
-    MAP_GPIO_setAsOutputPin(RGBLED_PORT, RLED_PIN);
-    MAP_GPIO_setAsOutputPin(RGBLED_PORT, GLED_PIN);
-    MAP_GPIO_setAsOutputPin(RGBLED_PORT, BLED_PIN);
+    uint8_t btn_state, prev_btn_state = GPIO_INPUT_PIN_LOW;
+    volatile int ii;
 
-    // Bring LED to known state
-    MAP_GPIO_setOutputLowOnPin(RGBLED_PORT, RLED_PIN);
-    MAP_GPIO_setOutputLowOnPin(RGBLED_PORT, GLED_PIN);
-    MAP_GPIO_setOutputLowOnPin(RGBLED_PORT, BLED_PIN);
-
-
-    uint8_t currLed, prevLed = GPIO_INPUT_PIN_LOW;
     while(1)
     {
-        currLed = MAP_GPIO_getInputPinValue(BTN_PORT, BTN_PIN1);
+        btn_state = *btn_port_in_reg & BTN_PIN1;
         for (ii = 0; ii < 8196; ii++); // Debounce S1
-        if (currLed == GPIO_INPUT_PIN_LOW && currLed != prevLed) {
+        if (btn_state == GPIO_INPUT_PIN_LOW && prev_btn_state != btn_state) {
             printf("Pressed\n");
-            MAP_GPIO_toggleOutputOnPin(RGBLED_PORT, BLED_PIN);
+            *led_port_out_reg ^= BLED_PIN;
         }
-        prevLed = currLed;
+        prev_btn_state = btn_state;
     }
 }
