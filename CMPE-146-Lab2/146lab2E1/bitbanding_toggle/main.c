@@ -54,44 +54,55 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+// Base addresses for bit-banding calculation
+#define PERIPHERAL_REGION_ADDR 0x40000000    // Starting address of peripheral region
+#define ALIAS_REGION_ADDR     0x42000000    // Starting address of alias region
+
 //![Simple GPIO Config]
-#define RLED_PIN (0x0001)
-#define GLED_PIN (0x0002)
-#define BLED_PIN (0x0004)
+#define RGBLED_PORT  GPIO_PORT_P2
+#define RLED_PIN  GPIO_PIN0
+#define GLED_PIN  GPIO_PIN1
+#define BLED_PIN  GPIO_PIN2
 
-#define BTN_PIN1 (0x0002)
+#define BTN_PORT  GPIO_PORT_P1
+#define BTN_PIN1  GPIO_PIN1
 
-#define PORT_REG(offset) ((uint8_t*)(0x40004C00 + offset))
+#define PORT_REG(offset) ((volatile uint8_t*)(0x40004C00 + offset))
+
+#define BITBAND_ADDR(port_addr, bit_position) \
+    ((volatile uint8_t*)(( (uint32_t)(port_addr) - PERIPHERAL_REGION_ADDR) * 32 + ( (uint32_t)bit_position * 4) + ALIAS_REGION_ADDR))
 
 int main(void)
 {
-    /* Stop Watchdog  */
-    printf("hello\n");
-    // Configure button
-    volatile uint8_t* btn_port_dir_reg = PORT_REG(0x4);
-    volatile uint8_t* btn_port_ren_reg = PORT_REG(0x6);
-    volatile uint8_t* btn_port_out_reg = PORT_REG(0x2);
-    volatile uint8_t* btn_port_in_reg = PORT_REG(0x0);
-    *btn_port_dir_reg &= ~(BTN_PIN1);
-    *btn_port_ren_reg |= BTN_PIN1;
-    *btn_port_out_reg |= BTN_PIN1;
+    volatile uint32_t ii;
+    MAP_WDT_A_holdTimer();
 
-    // Configure not LED
-    volatile uint8_t* led_port_dir_reg = PORT_REG(0x5);
-    volatile uint8_t* led_port_out_reg = PORT_REG(0x3);
-    *led_port_dir_reg |= RLED_PIN | GLED_PIN | BLED_PIN;
-    *led_port_out_reg &= ~(RLED_PIN | GLED_PIN | BLED_PIN);
+    //Initialize pins and ports for leds and buttons
+    MAP_GPIO_setAsInputPinWithPullUpResistor(BTN_PORT, BTN_PIN1);
 
+    MAP_GPIO_setAsOutputPin(RGBLED_PORT, RLED_PIN);
+    MAP_GPIO_setAsOutputPin(RGBLED_PORT, GLED_PIN);
+    MAP_GPIO_setAsOutputPin(RGBLED_PORT, BLED_PIN);
+
+    // Bring LED to known state
+    MAP_GPIO_setOutputLowOnPin(RGBLED_PORT, RLED_PIN);
+    MAP_GPIO_setOutputLowOnPin(RGBLED_PORT, GLED_PIN);
+    MAP_GPIO_setOutputLowOnPin(RGBLED_PORT, BLED_PIN);
+
+
+    volatile uint8_t* btn_switch_bit_alias = BITBAND_ADDR(PORT_REG(0x0), 1);
+    volatile uint8_t* blue_led_alias = BITBAND_ADDR(PORT_REG(0x3), 2);
     uint8_t btn_state, prev_btn_state = GPIO_INPUT_PIN_LOW;
-    volatile int ii;
-
+    printf("Hello bitbanding\n");
     while(1)
     {
-        btn_state = *btn_port_in_reg & BTN_PIN1;
+        btn_state = *btn_switch_bit_alias;
+        printf("btn_switch_bit_alias: 0x%p, value: %d\n\n", btn_switch_bit_alias, btn_state);
+        printf("blue led_alias: 0x%p, value: %d\n", blue_led_alias, *blue_led_alias);
         for (ii = 0; ii < 8196; ii++); // Debounce S1
         if (btn_state == GPIO_INPUT_PIN_LOW && prev_btn_state != btn_state) {
             printf("Pressed (bitband)\n");
-            *led_port_out_reg ^= BLED_PIN;
+            *blue_led_alias ^= 1;
         }
         prev_btn_state = btn_state;
     }

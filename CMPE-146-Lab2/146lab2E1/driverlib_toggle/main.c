@@ -62,7 +62,6 @@
 
 #define BTN_PORT  GPIO_PORT_P1
 #define BTN_PIN1  GPIO_PIN1
-#define BTN_PIN4  GPIO_PIN4
 
 int main(void)
 {
