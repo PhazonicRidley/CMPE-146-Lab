@@ -82,7 +82,7 @@ void encrypt_message_16(char* str, uint8_t* encrypted, uint8_t* key)
 
 void decrypt_message_16(uint8_t* data, uint8_t* decrypted, uint8_t* key)
 {
-    AES256_setDecipherKey(AES256_BASE, key, AES256_KEYLENGTH_256BIT);
+    MAP_AES256_setDecipherKey(AES256_BASE, key, AES256_KEYLENGTH_256BIT);
 
     MAP_AES256_startDecryptData(AES256_BASE, data);
 
