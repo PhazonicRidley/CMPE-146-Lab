@@ -62,85 +62,82 @@
 
 /* Statics */
 
-const static uint8_t CipherKey[32] =
-{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
-        0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
-        0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f };
-static uint8_t DataAESencrypted[16];       // Encrypted data
-static uint8_t DataAESdecrypted[16];       // Decrypted data
 
-void encrypt_message_16(const char* str, uint8_t* encrypted, const uint8_t* key)
-{
-    MAP_AES256_setCipherKey(AES256_BASE, key, AES256_KEYLENGTH_256BIT);
+const char* str_key = "Password is CMPE146-01";
+static uint8_t DataAESencrypted[50];
+static uint8_t DataAESdecrypted[50];
 
-    MAP_AES256_startEncryptData(AES256_BASE, (uint8_t*)str);
+void encrypt_message(const char* str, uint8_t* encrypted, const char* key) {
+    char fixedKey[32];
+    strncpy(fixedKey, key, 31);
+    fixedKey[31] = '\0';
+    MAP_AES256_setCipherKey(AES256_BASE, (uint8_t*)fixedKey, AES256_KEYLENGTH_256BIT);
 
-    while(MAP_AES256_isBusy(AES256_BASE)) {
-        printf("Encrypting a string...\n");
-    }
+    size_t len = strlen(str); // Assumes str is null terminated
+    size_t delta, cursor = 0;
+    do {
 
-    MAP_AES256_getDataOut(AES256_BASE, encrypted);
+        const uint8_t* chunk = (const uint8_t*)str + cursor;
+        MAP_AES256_startEncryptData(AES256_BASE, chunk);
+
+        while(MAP_AES256_isBusy(AES256_BASE)) {
+            printf("Encrypting a string...\n");
+        }
+
+        MAP_AES256_getDataOut(AES256_BASE, encrypted + cursor);
+        delta = len - cursor;
+        cursor += delta > 16 ? 16 : delta;
+    } while (cursor < len);
 }
 
-void decrypt_message_16(uint8_t* data, uint8_t* decrypted, const uint8_t* key)
-{
-    MAP_AES256_setDecipherKey(AES256_BASE, key, AES256_KEYLENGTH_256BIT);
+void decrypt_message(uint8_t* data, int data_length, uint8_t* decrypted, const char* key){
+    char fixedKey[32];
+    strncpy(fixedKey, key, 31);
+    fixedKey[31] = '\0';
+    MAP_AES256_setDecipherKey(AES256_BASE, (uint8_t*)fixedKey, AES256_KEYLENGTH_256BIT);
 
-    MAP_AES256_startDecryptData(AES256_BASE, data);
+    size_t delta, cursor = 0;
+    do {
+        MAP_AES256_startDecryptData(AES256_BASE, data + cursor);
 
-    while(MAP_AES256_isBusy(AES256_BASE)) {
-        printf("Encrypting a string...\n");
-    }
+        while(MAP_AES256_isBusy(AES256_BASE)) {
+            printf("Decrypting a string...\n");
+        }
 
-    MAP_AES256_getDataOut(AES256_BASE, decrypted);
+        MAP_AES256_getDataOut(AES256_BASE, decrypted + cursor);
+        delta = data_length - cursor;
+        cursor += delta > 16 ? 16 : cursor;
+    } while(cursor < data_length);
 }
 
 int main(void)
 {
     /* Stop Watchdog  */
     MAP_WDT_A_holdTimer();
-    const char* full_data = "0123456789ABCDE";
-    const char* truncated_data = "0123456789";
-    encrypt_message_16(full_data, DataAESencrypted, CipherKey);
-    decrypt_message_16(DataAESencrypted, DataAESdecrypted, CipherKey);
+    const char* long_data = "0123456789ABCDEFGHIJ";
+    size_t long_data_len = strlen(long_data);
+    encrypt_message(long_data, DataAESencrypted, str_key);
+    decrypt_message(DataAESencrypted, long_data_len, DataAESdecrypted, str_key);
 
-    printf("Full 16 byte string:");
     int i;
     printf("\nData: ");
-    for (i = 0; i < 16; i++) {
-         printf("0x%02x ", full_data[i] );
+    for (i = 0; i < long_data_len; i++) {
+         printf("0x%02x ", long_data[i] );
     }
 
     int j;
     printf("\nEncrypted: ");
-    for (j = 0; j < 16; j++) {
+    for (j = 0; j < long_data_len; j++) {
          printf("0x%02x ", DataAESencrypted[j] );
     }
 
     int k;
     printf("\nDencrypted: ");
-    for (k = 0; k < 16; k++) {
+    for (k = 0; k < long_data_len; k++) {
          printf("0x%02x ", DataAESdecrypted[k] );
     }
 
-    encrypt_message_16(truncated_data, DataAESencrypted, CipherKey);
-    decrypt_message_16(DataAESencrypted, DataAESdecrypted, CipherKey);
-    printf("\n\nTruncated 10 byte string:");
-    printf("\nData: ");
-    for (i = 0; i < 16; i++) {
-         printf("0x%02x ", truncated_data[i]);
-    }
-
-    printf("\nEncrypted: ");
-    for (j = 0; j < 16; j++) {
-         printf("0x%02x ", DataAESencrypted[j] );
-    }
-
-    printf("\nDencrypted: ");
-    for (k = 0; k < 16; k++) {
-         printf("0x%02x ", DataAESdecrypted[k] );
-    }
-    printf("\n\n");
+    printf("\n");
     while(1)
     {
         MAP_PCM_gotoLPM0();
