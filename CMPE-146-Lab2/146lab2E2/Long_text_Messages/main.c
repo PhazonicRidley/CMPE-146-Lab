@@ -73,7 +73,7 @@ void encrypt_message_16(const char* str, uint8_t* encrypted, const uint8_t* key)
 {
     MAP_AES256_setCipherKey(AES256_BASE, key, AES256_KEYLENGTH_256BIT);
 
-    MAP_AES256_startEncryptData(AES256_BASE, (const uint8_t*)str);
+    MAP_AES256_startEncryptData(AES256_BASE, (uint8_t*)str);
 
     while(MAP_AES256_isBusy(AES256_BASE)) {
         printf("Encrypting a string...\n");
