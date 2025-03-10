@@ -188,7 +188,7 @@ int main(void)
                 end_time = head_queue.timestamp;
                 time_dur = start_time - end_time;
                 printf("Read_index: %d \n", read_index);
-                printf("Button Time Duration: %d ms\n", time_dur);
+                printf("Button Time Duration: %d us\n", time_dur);
                 printf("---------------------------------------------\n");
             }
         }
