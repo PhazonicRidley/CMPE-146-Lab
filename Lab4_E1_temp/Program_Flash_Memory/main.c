@@ -77,30 +77,10 @@ bool get_flash_bank_sector(uint32_t mem_address, uint32_t* bank_number, uint32_t
 
 void main(void)
 {
-    uint32_t* bank1;
-    uint32_t* mask1;
-    uint32_t* bank3;
-    uint32_t* mask3;
-
-    MAP_WDT_A_holdTimer();
-    printf("string1: %s\n", string1);
-    printf("string2: %s\n", string2);
-    printf("string2: %s\n", string3);
-
-    string2[0] = '0';
-    string2[1] = '3';
-
-    get_flash_bank_sector((uint32_t)string1, bank1, mask1);
-    get_flash_bank_sector((uint32_t)string3, bank3, mask3);
-
-    FlashCtl_protectSector ( bank1, mask1);
-    FlashCtl_protectSector ( bank1, mask1);
-
-    ROM_FlashCtl_programMemory(string2, string1, 2);
-    ROM_FlashCtl_programMemory(string2, string3, 2);
-
-    printf("string1: %s\n", string1);
-    printf("string2: %s\n", string2);
-    printf("string2: %s\n", string3);
+    int i = 0;
+   while(1) {
+       printf("hello, test");
+       for (; i < 50000; i++);
+   }
 }
 
