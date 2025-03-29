@@ -57,9 +57,11 @@ const char string3[1024 * 160] = {"xyz123"};
 
 bool get_flash_bank_sector(uint32_t mem_address, uint32_t* bank_number, uint32_t* sector_mask)
 {
+    bool isMask = true;
     if(mem_address <= 0x0001FFFF)
     {
-        *bank_number = FLASH_MAIN_MEMORY_SPACE_BANK0;    }
+        *bank_number = FLASH_MAIN_MEMORY_SPACE_BANK0;
+    }
     else if (mem_address > 0x0001FFFF && mem_address <= 0x0003FFFF)
     {
         *bank_number =  FLASH_MAIN_MEMORY_SPACE_BANK1;
@@ -67,8 +69,10 @@ bool get_flash_bank_sector(uint32_t mem_address, uint32_t* bank_number, uint32_t
     else
     {
         *bank_number = NULL;
+        isMask = false;
     }
     *sector_mask = 1 << (mem_address/4096);
+    return isMask;
 }
 
 void main(void)
