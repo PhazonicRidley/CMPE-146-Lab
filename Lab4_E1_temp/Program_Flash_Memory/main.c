@@ -75,6 +75,7 @@ bool get_flash_bank_sector(uint32_t mem_address, uint32_t* bank_number, uint32_t
     return isMask;
 }
 
+<<<<<<< HEAD
 
 void gpio_toggle(volatile uint8_t* counter) {
   if (*counter < 3) {
@@ -113,5 +114,14 @@ void main(void)
     ROM_FlashCtl_programMemory(counter, next_counter, 2);
     gpio_toggle(counter);
 
+=======
+void main(void)
+{
+    int i = 0;
+   while(1) {
+       printf("hello, test");
+       for (; i < 50000; i++);
+   }
+>>>>>>> 5a85e960f4c69c016db202d865c63555a849daac
 }
 
