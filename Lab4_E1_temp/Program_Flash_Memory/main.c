@@ -50,10 +50,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#define RLED_PIN (0x0001)
+#define GLED_PIN (0x0002)
 
-char* string1 = "xyz123";
-char string2[] = "xyz123";
-const char string3[1024 * 160] = {"xyz123"};
+uint32_t counter* = 0xFFFFFFF;
 
 bool get_flash_bank_sector(uint32_t mem_address, uint32_t* bank_number, uint32_t* sector_mask)
 {
@@ -75,32 +75,43 @@ bool get_flash_bank_sector(uint32_t mem_address, uint32_t* bank_number, uint32_t
     return isMask;
 }
 
+
+void gpio_toggle(volatile uint8_t* counter) {
+  if (*counter < 3) {
+    MAP_GPIO_setAsOutputPin(GPIO_PORT_P2, GLED_PIN);
+    int i;
+    while (1) {
+      for(i = 0; i < 50000; i++);
+      MAP_GPIO_toggleOutputPin(GPIO_PORT_P2, GLED_PIN);
+    }
+  }
+  else {
+    MAP_GPIO_setAsOutputPin(GPIO_PORT_P2, RLED_PIN);
+    int i;
+    MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P2, RLED_PIN);
+    while (1);
+  }
+}
+
+
 void main(void)
 {
-    uint32_t* bank1;
-    uint32_t* mask1;
-    uint32_t* bank3;
-    uint32_t* mask3;
+    uint32_t current_counter;
+    uint32_t mask;
+    uint32_t bank;
 
     MAP_WDT_A_holdTimer();
-    printf("string1: %s\n", string1);
-    printf("string2: %s\n", string2);
-    printf("string2: %s\n", string3);
 
-    string2[0] = '0';
-    string2[1] = '3';
+    bool bank_sector = get_flash_bank_sector((uint32_t)string1, bank1, mask1);
+    if(!bank_sector)
+    {
+        printf("Bank error");
+    }
 
-    get_flash_bank_sector((uint32_t)string1, bank1, mask1);
-    get_flash_bank_sector((uint32_t)string3, bank3, mask3);
+    FlashCtl_protectSector ( bank, mask);
+    uint32_t next_counter = counter &(counter - 1;
+    ROM_FlashCtl_programMemory(counter, next_counter, 2);
+    gpio_toggle(counter);
 
-    FlashCtl_protectSector ( bank1, mask1);
-    FlashCtl_protectSector ( bank1, mask1);
-
-    ROM_FlashCtl_programMemory(string2, string1, 2);
-    ROM_FlashCtl_programMemory(string2, string3, 2);
-
-    printf("string1: %s\n", string1);
-    printf("string2: %s\n", string2);
-    printf("string2: %s\n", string3);
 }
 
