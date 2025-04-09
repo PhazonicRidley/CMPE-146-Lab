@@ -59,42 +59,39 @@ void delay_ms(uint32_t count)
     uint64_t cc = MAP_CS_getMCLK();
     uint64_t end_tick = (cc * count) / 1000;
 
-    uint32_t start = MAP_Timer32_getValue();
-    uint32_t end = MAP_Timer32_getValue();
+    uint32_t start = MAP_Timer32_getValue(TIMER32_0_BASE);
+    uint32_t end = MAP_Timer32_getValue(TIMER32_0_BASE);
 
     while((start - end) <= end_tick)
     {
-        end = MAP_Timer32_getValue();
+        end = MAP_Timer32_getValue(TIMER32_0_BASE);
     }
 }
 
 
 int main(void)
 {
-    uint32_t size = 10;
-    uint32_t t0, t1;
-    uint32_t delay_v[size] = {5000, 2000, 1000, 50, 20, 10, 5, 2, 1, 0}
+    const uint32_t size = 10;
+    uint32_t t0, t1, delay;
+    uint64_t freq = 3000;
+    uint32_t delay_v[size] = {5000, 2000, 1000, 50, 20, 10, 5, 2, 1, 0};
+    int i;
     /* Stop Watchdog  */
     MAP_WDT_A_holdTimer();
 
     MAP_Timer32_initModule(TIMER32_0_BASE, TIMER32_PRESCALER_1, TIMER32_32BIT, TIMER32_FREE_RUN_MODE);
     MAP_Timer32_startTimer(TIMER32_0_BASE, 0);
 
-    t0 = MAP_Timer32_getValue(TIMER32_1_BASE);
-    delay_ms(1000);
-    t1 = MAP_Timer32_getValue(TIMER32_1_BASE);
-    printf("Delay time: %d\n", (t1-t0));
-
-    printf("===================================================");
-
     MAP_Timer32_initModule(TIMER32_1_BASE, TIMER32_PRESCALER_1, TIMER32_32BIT,TIMER32_FREE_RUN_MODE);
     MAP_Timer32_startTimer(TIMER32_1_BASE, 0);
 
-    for(int i = 0; i < size; i++ )
+    for(i = 0; i < size; i++ )
     {
         t0 = MAP_Timer32_getValue(TIMER32_1_BASE);
-        delay_ms(delay[i]);
+        delay_ms(delay_v[i]);
         t1 = MAP_Timer32_getValue(TIMER32_1_BASE);
-        printf("Delay time for %d: %d\n", delay[i] (t1-t0));
+        delay = (t0-t1)/freq;
+        printf("Delay time at %d: %d\n", delay_v[i], delay);
+        printf("Delay time difference at %d: %d\n", delay_v[i], delay - delay_v[i]);
     }
 }

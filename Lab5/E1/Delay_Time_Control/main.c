@@ -62,19 +62,21 @@ void delay_ms(uint32_t count)
     uint64_t cc = MAP_CS_getMCLK();
     uint64_t end_tick = (cc * count) / 1000;
 
-    uint32_t start = MAP_Timer32_getValue();
-    uint32_t end = MAP_Timer32_getValue();
+    uint32_t start = MAP_Timer32_getValue(TIMER32_0_BASE);
+    uint32_t end = MAP_Timer32_getValue(TIMER32_0_BASE);
 
     while((start - end) <= end_tick)
     {
-        end = MAP_Timer32_getValue();
+        end = MAP_Timer32_getValue(TIMER32_0_BASE);
     }
 }
 
 
 int main(void)
 {
-    uint32_t t0, t1;
+    uint32_t t0, t1, delay;
+    uint64_t freq = 3000;
+
     /* Stop Watchdog  */
     MAP_WDT_A_holdTimer();
 
@@ -91,9 +93,10 @@ int main(void)
         delay_ms(2475);
         MAP_GPIO_setOutputLowOnPin(RGBLED_PORT, RLED_PIN);
         t1 = MAP_Timer32_getValue(TIMER32_0_BASE);
-        printf("Delay time: %d\n", (t1-t0));
+        delay = (t0-t1)/freq;
+        printf("Delay time: %d\n", delay);
 
-        printf("===================================================");
+        printf("===================================================\n");
     }
 
 }
