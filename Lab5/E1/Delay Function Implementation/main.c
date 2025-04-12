@@ -54,17 +54,28 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#define CURRENT_TIME ((uint32_t)MAP_Timer32_getValue(TIMER32_0_BASE))
+
 void delay_ms(uint32_t count)
 {
-    uint64_t cc = MAP_CS_getMCLK();
-    uint64_t end_tick = (cc * count) / 1000;
+    uint64_t ticks_to_wait = ((uint64_t)MAP_CS_getMCLK() * count) / 1000;
+    uint64_t total_elapsed = 0;
+    uint64_t prev = (uint64_t)CURRENT_TIME;
+    uint64_t current;
 
-    uint32_t start = MAP_Timer32_getValue(TIMER32_0_BASE);
-    uint32_t end = MAP_Timer32_getValue(TIMER32_0_BASE);
-
-    while((start - end) <= end_tick)
+    while(total_elapsed < ticks_to_wait)
     {
-        end = MAP_Timer32_getValue(TIMER32_0_BASE);
+        uint64_t elapsed;
+        current = (uint64_t)CURRENT_TIME;
+
+        if(prev >= current) {
+            elapsed = prev - current;
+        } else {
+            elapsed = prev + ((uint32_t)0xFFFFFFFF - current); // Handle underflow
+        }
+
+        total_elapsed += elapsed;
+        prev = current;
     }
 }
 
