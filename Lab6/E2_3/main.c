@@ -54,12 +54,14 @@
 
 /* Standard Includes */
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <math.h>
 
 #define USE_SRAM_METHOD
-#define USE_FLASH_METHOD
-#define DO_PRINTF
+//#define USE_FLASH_METHOD
+//#define DO_PRINTF
 
 
 #ifdef USE_SRAM_METHOD
@@ -73,7 +75,7 @@ void sram_function()
 #endif
 
 
-#ifdef USE_SRAM_METHOD
+#ifdef USE_FLASH_METHOD
 void flash_function()
 {
     register int i;
@@ -83,10 +85,10 @@ void flash_function()
 #endif
 
 #ifdef DO_PRINTF
-uint64_t delta_micros(uint32_t start, uint32_t end) {
-    uint64_t tick_delta = abs(start - end); // Countdown timer so start is a greater value than end
-    uint64_t time = tick_delta / MAP_CS_getMCLK();
-    uint64_t time_micros = time * 1000000;
+double delta_micros(uint32_t start, uint32_t end) {
+    uint32_t tick_delta = abs(start - end); // Countdown timer so start is a greater value than end
+    double time = (double)tick_delta / MAP_CS_getMCLK();
+    double time_micros = time * pow(10, 6);
     return time_micros;
 
 }
@@ -117,8 +119,8 @@ int main(void)
 #ifdef DO_PRINTF
     end = MAP_Timer32_getValue(TIMER32_0_BASE);
 
-    printf("Flash function being measured, fn addr: %p, clock frequency is: %d, function runtime: %llu\n",
-           &flash_function, MAP_CS_getMCLK(), delta_micros(start, end));
+    printf("Flash function being measured, fn addr: 0x%08x, clock frequency is: %d, function runtime: %f\n",
+           (uintptr_t)&flash_function, MAP_CS_getMCLK(), delta_micros(start, end));
 #endif
 
 #endif
@@ -136,8 +138,8 @@ int main(void)
 #ifdef DO_PRINTF
     end = MAP_Timer32_getValue(TIMER32_0_BASE);
 
-    printf("SRAM function being measured, fn addr: %p, clock frequency is: %d, function runtime: %llu\n",
-           &sram_function, MAP_CS_getMCLK(), delta_micros(start, end));
+    printf("SRAM function being measured, fn addr: 0x%08x, clock frequency is: %d, function runtime: %f\n",
+           (uintptr_t)&sram_function, MAP_CS_getMCLK(), delta_micros(start, end));
 #endif
 
 #endif
@@ -147,6 +149,6 @@ int main(void)
     printf("Done!");
 #endif
 
-    while(1);
+   abort();
 
 }
