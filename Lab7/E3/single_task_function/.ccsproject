@@ -16,4 +16,5 @@
 	<templateProperties value="id=hello_MSP_EXP432P401R_tirtos_ccs.projectspec.hello_MSP_EXP432P401R_tirtos_ccs,type=rtsc,xdcToolsVersion=3_60_02_34_core,target=ti.targets.arm.elf.M4F,platform=ti.platforms.msp432:MSP432P401R,buildProfile=release,isHybrid=true,configuroOptions= --compileOptions &quot;${COMPILER_FLAGS} &quot;"/>
 	<origin value="/Applications/ti/simplelink_msp432p4_sdk_3_40_01_02/examples/rtos/MSP_EXP432P401R/sysbios/hello/tirtos/ccs/hello_MSP_EXP432P401R_tirtos_ccs.projectspec"/>
 	<filesToOpen value=""/>
+	<isTargetManual value="true"/>
 </projectOptions>
