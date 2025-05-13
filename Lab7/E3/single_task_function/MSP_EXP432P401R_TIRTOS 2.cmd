@@ -1,5 +1,5 @@
-/* --COPYRIGHT--,BSD
- * Copyright (c) 2017, Texas Instruments Incorporated
+/*
+ * Copyright (c) 2015-2017, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,42 +28,51 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * --/COPYRIGHT--*/
-/******************************************************************************
- * MSP432 Empty Project
- *
- * Description: An empty project that uses DriverLib
- *
- *                MSP432P401
- *             ------------------
- *         /|\|                  |
- *          | |                  |
- *          --|RST               |
- *            |                  |
- *            |                  |
- *            |                  |
- *            |                  |
- *            |                  |
- * Author: 
-*******************************************************************************/
-/* DriverLib Includes */
-#include <ti/devices/msp432p4xx/driverlib/driverlib.h>
+ */
+/*
+ *  ======== MSP_EXP432P401R_TIRTOS.cmd ========
+ *  Define the memory block start/length for the MSP_EXP432P401R M4
+ */
 
-/* Standard Includes */
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
+--stack_size=1024   /* C stack is also used for ISR stack */
 
-int main(void)
+HEAPSIZE = 0x8000;  /* Size of heap buffer used by HeapMem */
+
+MEMORY
 {
-    /* Stop Watchdog  */
-    MAP_WDT_A_holdTimer();
-
-    while(1)
+    MAIN       (RX) : origin = 0x00000000, length = 0x00040000
+    INFO       (RX) : origin = 0x00200000, length = 0x00004000
+    ALIAS
     {
-        uint32_t i = 0;
-        for (; i < 50000; i++);
-        printf("Test");
-        
-    }
+    SRAM_CODE  (RWX): origin = 0x01000000
+    SRAM_DATA  (RW) : origin = 0x20000000
+    } length = 0x00010000
 }
+
+/* Section allocation in memory */
+
+SECTIONS
+{
+    .text   :   > MAIN
+    .TI.ramfunc : {} load=MAIN, run=SRAM_CODE, table(BINIT)
+    .const  :   > MAIN
+    .cinit  :   > MAIN
+    .pinit  :   > MAIN
+    .init_array : > MAIN
+
+    .data   :   > SRAM_DATA
+    .bss    :   > SRAM_DATA
+    .sysmem :   > SRAM_DATA
+
+    /* Heap buffer used by HeapMem */
+    .priheap   : {
+        __primary_heap_start__ = .;
+        . += HEAPSIZE;
+        __primary_heap_end__ = .;
+    } > SRAM_DATA align 8
+
+    .stack  :   > SRAM_DATA (HIGH)
+}
+
+/* Symbolic definition of the WDTCTL register for RTS */
+WDTCTL_SYM = 0x4000480C;
