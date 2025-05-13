@@ -156,7 +156,7 @@ int main(void)
             {
                 DMA_t1 = MAP_Timer32_getValue(TIMER32_0_BASE);
                 printf("DMA method Done at time: %d us\n", DMA_t0 - DMA_t1);
-                printf("DMA method checksum: %d\n", dmaCalculatedCRC);
+                printf("DMA method checksum: 0x%x\n", dmaCalculatedCRC);
                 __delay_cycles(200 * 3000); // Delay 200 ms at 3 MHz
                 break;
             }
