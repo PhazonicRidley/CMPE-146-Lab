@@ -93,8 +93,8 @@ void send_message(char* msg)
     int i = 0;
     while(msg[i] != '\0')
     {
-//        0b = eUSCI_A inactive
-//        1b = eUSCI_A transmitting or receiving
+        // 0b = eUSCI_A inactive
+        // 1b = eUSCI_A transmitting or receiving
         while(*STAT & (1 << 0))
         {
             //waiting until the eUSCI is inactive

@@ -49,79 +49,79 @@
 /* DriverLib Includes */
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 
-/* Standard Includes */
+// Standard Includes
 #include <stdint.h>
-#include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
-#define BAUD_RATE 1200
 #define SYSTEM_FREQ 3000000
-#define BIT_DURATION (SYSTEM_FREQ / BAUD_RATE)
-#define UART_PORT GPIO_PORT_P1
-#define UART_TX GPIO_PIN3
+#define res 16384
 
-void send_char(char letter)
-{
-    int i;
-    const uint32_t offset = 0;
-
-    //start bit
-    GPIO_setOutputLowOnPin(UART_PORT, UART_TX);
-    __delay_cycles(BIT_DURATION - offset);
-    //data bits
-    for(i = 0; i < 8; i++)
-    {
-        if (letter & (1 << i))
-        {
-            GPIO_setOutputHighOnPin(UART_PORT, UART_TX);
-        }
-        else
-        {
-            GPIO_setOutputLowOnPin(UART_PORT, UART_TX);
-        }
-        __delay_cycles(BIT_DURATION - offset);
-    }
-    //stop bit
-    GPIO_setOutputHighOnPin(UART_PORT, UART_TX);
-    __delay_cycles(BIT_DURATION - offset);
-}
-
-void send_message(char* msg)
-{
-    int j = 0;
-    while(msg[j] != '\0')
-    {
-        send_char(msg[j]);
-        j++;
-    }
-}
+volatile bool adc_done;
+volatile uint32_t adc_value;
+volatile float voltage;
+volatile float temp_c;
 
 int main(void)
 {
-    /* Stop Watchdog  */
-    MAP_WDT_A_holdTimer();
+    // Halt WDT
+    WDT_A_holdTimer();
+    printf("MCLK: %u\n", MAP_CS_getMCLK());
 
-    MAP_Timer32_initModule(TIMER32_0_BASE, TIMER32_PRESCALER_1, TIMER32_32BIT, TIMER32_FREE_RUN_MODE);
-    MAP_Timer32_startTimer(TIMER32_0_BASE, 0);
+    // Set reference voltage to 1.2 V and enable temperature sensor
+    REF_A_enableReferenceVoltage();
+    REF_A_enableTempSensor();
+    REF_A_setReferenceVoltage(REF_A_VREF1_2V);
 
-    GPIO_setAsOutputPin( UART_PORT, UART_TX);
-    GPIO_setOutputHighOnPin(UART_PORT, UART_TX);
-    __delay_cycles(3000);
+    // Initializing ADC (MCLK/1/1) with temperature sensor routed
+    ADC14_enableModule();
+    ADC14_initModule(ADC_CLOCKSOURCE_MCLK, ADC_PREDIVIDER_1, ADC_DIVIDER_1,
+                     ADC_TEMPSENSEMAP);
 
-    static char something[] =
-    {0x0d,0x0a,0x4d,0x6f,0x6f,0x6f,0x6f,0x6f,0x20,0x20,0x20,0x20,0x20,0x20,0x5e,
-     0x5f,0x5f,0x5e,0x0d,0x0a,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,
-    0x20,0x28,0x6f,0x6f,0x29,0x5c,0x5f,0x5f,0x5f,0x5f,0x5f,0x5f,0x5f,0x0d,0x0a,0x20,
-    0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x28,0x5f,0x5f,0x29,
-    0x5c,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x29,0x5c,0x2f,0x5c,0x0d,0x0a,0x20,0x20,
-    0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x7c,0x7c,
-    0x2d,0x2d,0x2d,0x2d,0x77,0x20,0x7c,0x0d,0x0a,0x20,0x20,0x20,0x20,0x20,0x20,
-    0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x7c,0x7c,0x20,0x20,0x20,0x20,
-    0x20,0x7c,0x7c,0x0d,0x0a,0x00};
-    //static char something[] = {"Hello World"};
-    send_message(something);
-    while(1)
+    // Set resolution
+    ADC14_setResolution(ADC_14BIT);
+
+    // Configure ADC Memory for temperature sensor data
+    ADC14_configureSingleSampleMode(ADC_MEM0, false);
+    ADC14_configureConversionMemory(ADC_MEM0, ADC_VREFPOS_INTBUF_VREFNEG_VSS,
+                                    ADC_INPUT_A22, false);
+
+    // Configure the sample/hold time
+    ADC14_setSampleHoldTime(ADC_PULSE_WIDTH_192, ADC_PULSE_WIDTH_192);
+
+    // Enable sample timer in manual iteration mode and interrupts
+    ADC14_enableSampleTimer(ADC_MANUAL_ITERATION);
+
+    // Enable conversion
+    ADC14_enableConversion();
+
+    // Enabling Interrupts
+    ADC14_enableInterrupt(ADC_INT0);
+    Interrupt_enableInterrupt(INT_ADC14);
+    Interrupt_enableMaster();
+
+    // Trigger conversion with software
+    ADC14_toggleConversionTrigger();
+    while (true)
     {
-        
+        adc_value = ADC14_getResult(ADC_MEM0);
+        voltage = (adc_value * 1.2f) / res;
+        temp_c = voltage * 100;
+        printf("voltage: %.2f | ADC: %d\n", voltage, adc_value);
+        __delay_cycles((SYSTEM_FREQ / 1000) * 500);
     }
 }
+
+// This interrupt happens every time a conversion has completed
+void ADC14_IRQHandler(void)
+{
+    uint64_t status;
+    status = ADC14_getEnabledInterruptStatus();
+    ADC14_clearInterruptFlag(status);
+    if(status & ADC_INT0)
+    {
+            adc_done = true;
+    }
+}
+
+
