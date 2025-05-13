@@ -102,13 +102,24 @@ int main(void)
 
     // Trigger conversion with software
     ADC14_toggleConversionTrigger();
+    uint32_t cal30 = SysCtl_getTempCalibrationConstant(SYSCTL_1_2V_REF, SYSCTL_30_DEGREES_C);
+    uint32_t cal85 = SysCtl_getTempCalibrationConstant(SYSCTL_1_2V_REF, SYSCTL_85_DEGREES_C);
+
     while (true)
     {
+        ADC14_toggleConversionTrigger();
+        while (!adc_done); // wait for conversion to complete
+        adc_done = false;
+
         adc_value = ADC14_getResult(ADC_MEM0);
-        temp_c = SysCtl_getTempCalibrationConstant(SYSCTL_1_2V_REF, SYSCTL_30_DEGREES_C);
-        temp_f = (temp_c * (9/5)) + 32;
         voltage = (adc_value * 1.2f) / res;
-        printf("voltage: %.2f | ADC: %d | temp(F): %d\n", voltage, adc_value, temp_f);
+
+        float tempC = ((float)adc_value - cal30) * (85.0f - 30.0f) / (cal85 - cal30) + 30.0f;
+        float tempF = (tempC * 9.0f / 5.0f) + 32.0f;
+
+        printf("voltage: %.2f | ADC: %lu | temp(C): %.2f | temp(F): %.2f\n",
+               voltage, adc_value, tempC, tempF);
+
         __delay_cycles((SYSTEM_FREQ / 1000) * 500);
     }
 }
